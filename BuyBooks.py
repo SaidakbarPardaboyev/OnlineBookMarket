@@ -4,17 +4,15 @@ from PyQt5.QtGui import *
 import mysql.connector as mys
 from os import *
 from sys import *
-from Create_database import Database
+# from Create_database import Database
 
 class BuyBooks(QWidget):
-    def __init__(self):
+    def __init__(self, Db_Username, Db_Password, ls):
         super().__init__()
+        self.User_information = ls
         self.ls = list()
         self.Order_Book_ids = list()
 
-        Db_Username = input("Database ingizni username nini kiriting: ")
-        Db_Password = input("Database ingizni password nini kiriting: ")
-        self.DataB = Database(Db_Username, Db_Password)
         self.con = mys.connect(host='localhost', username=Db_Username, password=Db_Password)
         self.kursor = self.con.cursor()
         self.D_Name = "OnlineBookSale"
@@ -90,12 +88,12 @@ class BuyBooks(QWidget):
         self.Pilus.setFont(QFont("Montserrat", 15, weight=100))
         self.Pilus.clicked.connect(lambda: self.PilusOrder(book_info))
 
-        self.Count = QLabel("0")
-        self.Count.setAlignment(Qt.AlignCenter)
-        self.Count.setFixedSize(50, 80)
-        self.Count.setStyleSheet("""border: 2px solid black;
-                                        color: black;""")
-        self.Count.setFont(QFont("Montserrat", 15, weight=100))
+        # self.Count = QLabel("0")
+        # self.Count.setAlignment(Qt.AlignCenter)
+        # self.Count.setFixedSize(50, 80)
+        # self.Count.setStyleSheet("""border: 2px solid black;
+        #                                 color: black;""")
+        # self.Count.setFont(QFont("Montserrat", 15, weight=100))
 
         self.Minus = QPushButton("-")
         self.Minus.setFixedSize(70, 80)
@@ -108,7 +106,7 @@ class BuyBooks(QWidget):
         self.book_layout.addWidget(self.book_author)
         self.book_layout.addWidget(self.book_price)
         self.book_layout.addWidget(self.Pilus)
-        self.book_layout.addWidget(self.Count)
+        # self.book_layout.addWidget(self.Count)
         self.book_layout.addWidget(self.Minus)
 
         self.wind_book.setLayout(self.book_layout)
@@ -201,26 +199,26 @@ class BuyBooks(QWidget):
             info_book = "\n".join(info_book)
             msg.setInformativeText(info_book)
 
-            # msg.buttonClicked.connect(self.Write_orders_to_db)
+            msg.buttonClicked.connect(self.Write_orders_to_db)
 
             msg.exec_()
 
     def Write_orders_to_db(self, button):
-        print(button.text())
         if button.text() == "&Yes":
             self.kursor.execute(f"use {self.D_Name}")
-            print(self.id_list)
-            print(self.Order_Book_ids)
-
             for i in set(self.Order_Book_ids):
                 B_id = i
                 B_count = self.Order_Book_ids.count(i)
                 self.kursor.execute(f"""insert into {self.T3_name}(User_id, Book_id, count) 
-                                    values ({self.Cur_user_id}, {B_id}, {B_count})""")
+                                    values ({self.User_information[0]}, {B_id}, {B_count})""")
             self.con.commit()
 
+            self.Buyurtmalar_soni.setText("Buyurtmalar soni: 0")
+            self.SumLabel.setText("0 som")
+            self.Order_Book_ids.clear()
+
     def Show_Who_user(self):
-        self.Show_user = QLabel("Saidakbar Pardaboyev")
+        self.Show_user = QLabel(f"{self.User_information[1]} {self.User_information[2]}")
         self.Show_user.setFont(QFont("Montserrat", 20))
         self.Show_user.setStyleSheet("""
                                      color: white
