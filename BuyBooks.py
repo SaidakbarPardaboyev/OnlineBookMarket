@@ -4,14 +4,99 @@ from PyQt5.QtGui import *
 import mysql.connector as mys
 from os import *
 from sys import *
+
 # from Create_database import Database
+
+class Myorders(QDialog):
+    def __init__(self, ls, Db_Username, Db_Password):
+        super().__init__()
+        self.setMinimumSize(1350, 700)
+        self.setMaximumSize(1350, 700)
+        self.setStyleSheet("background-color: #EAFFFF")
+        self.setWindowTitle("Order List")
+        self.setWindowIcon(QIcon("bookstore.ico"))
+
+        OWid = QWidget(self)
+        OWid.setFixedSize(1350, 700)
+        OWid.setStyleSheet("""color: black;
+                                background-color: #DADADA;""")
+        OWid.setFont(QFont("Montserrat", 15, weight=100))
+        OWLayout = QVBoxLayout(OWid)
+
+        ScrollArea = QScrollArea()
+        ScrollArea.setFixedSize(1350,700)
+        container = QWidget()
+        ScrollArea.setStyleSheet("background-color: #D9D9D9")
+        Scroll_Layout = QVBoxLayout(container)
+
+        self.con = mys.connect(host='localhost', user=Db_Username, password=Db_Password)
+        self.D_Name = "OnlineBookSale"
+        self.T2_name = "Books"
+        self.kursor = self.con.cursor()
+        self.kursor.execute(f"use {self.D_Name}")
+        placeholders = ', '.join(map(lambda x: str(x[0]), ls))
+        self.kursor.execute(f"select * from {self.T2_name} where id in ({placeholders})")
+        list_books = self.kursor.fetchall()
+
+        self.ls = []  # Initialize self.ls
+        for book_info in list_books:
+            tem = self.BookCard(book_info)
+            self.ls.append(tem)
+            Scroll_Layout.addWidget(self.ls[-1])
+
+        ScrollArea.setWidget(container)
+        OWLayout.addWidget(ScrollArea)
+
+
+
+    def BookCard(self, book_info):
+        wind_book = QWidget()
+        wind_book.setFixedSize(1350, 100)
+        self.book_layout = QHBoxLayout()
+
+        self.book_name = QTextEdit()
+        self.book_name.setPlainText(book_info[1])
+        self.book_name.setReadOnly(True)
+        self.book_name.setAlignment(Qt.AlignCenter)
+        self.book_name.setFixedSize(400, 80)
+        self.book_name.setStyleSheet("""border: 2px solid black;
+                                        color: black;""")
+        self.book_name.setFont(QFont("Montserrat", 15, weight=100))
+
+        self.book_author = QLabel()
+        self.book_author.setText(book_info[4])
+        self.book_author.setAlignment(Qt.AlignCenter)
+        self.book_author.setFixedSize(400, 80)
+        self.book_author.setStyleSheet("""border: 2px solid black;
+                                        color: black;""")
+        self.book_author.setFont(QFont("Montserrat", 15, weight=100))
+
+        self.book_price = QLabel()
+        self.book_price.setText(str(book_info[3]))
+        self.book_price.setAlignment(Qt.AlignCenter)
+        self.book_price.setFixedSize(350, 80)
+        self.book_price.setStyleSheet("""border: 2px solid black;
+                                        color: black;""")
+        self.book_price.setFont(QFont("Montserrat", 15, weight=100))
+
+        self.book_layout.addWidget(self.book_name)
+        self.book_layout.addWidget(self.book_author)
+        self.book_layout.addWidget(self.book_price)
+
+        wind_book.setLayout(self.book_layout)
+
+        return wind_book
+
 
 class BuyBooks(QWidget):
     def __init__(self, Db_Username, Db_Password, ls):
         super().__init__()
         self.User_information = ls
         self.ls = list()
+        self.List_count = list()
         self.Order_Book_ids = list()
+        self.Db_Username = Db_Username
+        self.Db_Password = Db_Password
 
         self.con = mys.connect(host='localhost', username=Db_Username, password=Db_Password)
         self.kursor = self.con.cursor()
@@ -52,8 +137,8 @@ class BuyBooks(QWidget):
         self.mainLayout.addWidget(self.ScrollArea)
 
     def BookCard(self, book_info):
-        self.wind_book = QWidget()
-        self.wind_book.setFixedSize(1350, 100)
+        wind_book = QWidget()
+        wind_book.setFixedSize(1350, 100)
         self.book_layout = QHBoxLayout()
 
         self.book_name = QTextEdit()
@@ -81,40 +166,43 @@ class BuyBooks(QWidget):
                                         color: black;""")
         self.book_price.setFont(QFont("Montserrat", 15, weight=100))
 
+        Count = QLabel("0")
+        Count.setAlignment(Qt.AlignCenter)
+        Count.setFixedSize(50, 80)
+        Count.setStyleSheet("""border: 2px solid black;
+                                        color: black;""")
+        Count.setFont(QFont("Montserrat", 15, weight=100))
+
         self.Pilus = QPushButton("+")
         self.Pilus.setFixedSize(70, 80)
         self.Pilus.setStyleSheet("""border: 2px solid black;
                                         color: black;""")
         self.Pilus.setFont(QFont("Montserrat", 15, weight=100))
-        self.Pilus.clicked.connect(lambda: self.PilusOrder(book_info))
+        self.Pilus.clicked.connect(lambda: self.PilusOrder(book_info, Count))
 
-        # self.Count = QLabel("0")
-        # self.Count.setAlignment(Qt.AlignCenter)
-        # self.Count.setFixedSize(50, 80)
-        # self.Count.setStyleSheet("""border: 2px solid black;
-        #                                 color: black;""")
-        # self.Count.setFont(QFont("Montserrat", 15, weight=100))
 
         self.Minus = QPushButton("-")
         self.Minus.setFixedSize(70, 80)
         self.Minus.setStyleSheet("""border: 2px solid black;
                                         color: black;""")
         self.Minus.setFont(QFont("Montserrat", 15, weight=100))
-        self.Minus.clicked.connect(lambda: self.MinusOrder(book_info))
+        self.Minus.clicked.connect(lambda: self.MinusOrder(book_info, Count))
 
         self.book_layout.addWidget(self.book_name)
         self.book_layout.addWidget(self.book_author)
         self.book_layout.addWidget(self.book_price)
         self.book_layout.addWidget(self.Pilus)
-        # self.book_layout.addWidget(self.Count)
+        self.book_layout.addWidget(Count)
         self.book_layout.addWidget(self.Minus)
 
-        self.wind_book.setLayout(self.book_layout)
+        wind_book.setLayout(self.book_layout)
 
-        return self.wind_book
+        return wind_book
 
-    def MinusOrder(self, book_info):
+    def MinusOrder(self, book_info, label):
         if book_info[0] in self.Order_Book_ids:
+            if int(label.text().strip()) != 0:
+                label.setText(str(int(label.text().strip()) - 1))
             self.Order_Book_ids.remove(book_info[0])
             self.MinusCount()
             self.MinusSumma(book_info[3])
@@ -127,7 +215,9 @@ class BuyBooks(QWidget):
         tem = int(self.Buyurtmalar_soni.text()[18:].strip()) - 1
         self.Buyurtmalar_soni.setText("Buyurtmalar soni: " + str(tem))
 
-    def PilusOrder(self, book_info):
+    def PilusOrder(self, book_info, label):
+        label.setText(str(int(label.text().strip()) + 1))
+        self.List_count.append(label)
         self.PilusCount()
         self.PilusSumma(book_info[3])
         self.Order_Book_ids.append(book_info[0])
@@ -216,16 +306,43 @@ class BuyBooks(QWidget):
             self.Buyurtmalar_soni.setText("Buyurtmalar soni: 0")
             self.SumLabel.setText("0 som")
             self.Order_Book_ids.clear()
+            self.Clear_labels()
+
+    def Clear_labels(self):
+        for i in self.List_count:
+            i.setText("0")
 
     def Show_Who_user(self):
+        wid1 = QWidget()
+        W1Lay = QHBoxLayout(wid1)
+
         self.Show_user = QLabel(f"{self.User_information[1]} {self.User_information[2]}")
         self.Show_user.setFont(QFont("Montserrat", 20))
         self.Show_user.setStyleSheet("""
                                      color: white
                                      """)
         self.Show_user.setFixedSize(1200, 100)
-        self.mainLayout.addWidget(self.Show_user)
+        W1Lay.addWidget(self.Show_user)
 
+        self.OrdersB = QPushButton("Buyurtmalarim")
+        self.OrdersB.setFixedSize(250, 50)
+        self.OrdersB.setStyleSheet("""border: 2px solid black;
+                                        color: black;
+                                        background-color: #DADADA""")
+        self.OrdersB.setFont(QFont("Montserrat", 15, weight=100))
+        self.OrdersB.clicked.connect(lambda: self.All_Orders())
+        W1Lay.addWidget(self.OrdersB)
+
+        self.mainLayout.addWidget(wid1)
+
+    def All_Orders(self):
+        print(self.User_information[0])
+        self.kursor.execute(f"use {self.D_Name}")
+        self.kursor.execute(f"select Book_id from {self.T3_name} where User_id = '{self.User_information[0]}' ")
+        lll = self.kursor.fetchall()
+        ls = Myorders(lll, self.Db_Username, self.Db_Password)
+        ls.exec_()
+        
     def Show_Book_name_author_price(self):
         self.WforNameAuthorPrice = QWidget()
         self.WforNameAuthorPrice.setFixedSize(1400, 80)
@@ -265,3 +382,4 @@ if __name__ == "__main__":
     ilova = BuyBooks()
     ilova.show()
     app.exec_()
+
